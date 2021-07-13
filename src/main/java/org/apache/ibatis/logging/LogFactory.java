@@ -28,9 +28,11 @@ public final class LogFactory {
    */
   public static final String MARKER = "MYBATIS";
 
+  //记录当前使用的第三方日志组件所对应的适配器的构造方法
   private static Constructor<? extends Log> logConstructor;
 
   static {
+    //针对每种日志组件调用tryImplementation()方法进行尝试加载
     tryImplementation(LogFactory::useSlf4jLogging);
     tryImplementation(LogFactory::useCommonsLogging);
     tryImplementation(LogFactory::useLog4J2Logging);

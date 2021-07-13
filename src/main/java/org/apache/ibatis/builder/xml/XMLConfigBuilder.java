@@ -53,9 +53,13 @@ import org.apache.ibatis.type.JdbcType;
  */
 public class XMLConfigBuilder extends BaseBuilder {
 
+  //标识是否已经解析过mybatis-config.xml配置文件
   private boolean parsed;
+  //用于解析mybatis-config.xml配置文件的XPathParser对象
   private final XPathParser parser;
+  //标识<environment>配置的名称，默认读取<environment>标签的default属性
   private String environment;
+  //ReflectionFactory负责创建和缓存Reflector对象
   private final ReflectorFactory localReflectorFactory = new DefaultReflectorFactory();
 
   public XMLConfigBuilder(Reader reader) {
@@ -91,7 +95,13 @@ public class XMLConfigBuilder extends BaseBuilder {
     this.parser = parser;
   }
 
+  /**
+   * 解析mybatis-config.xml配置文件的入口，它通过调用XMLConfigBuilder.parseConfiguration()方法实现整个解析过程
+   *
+   * @return
+   */
   public Configuration parse() {
+    //根据parsed变量的值，判断是否已经完成了对mybatis-config.xml配置文件的解析
     if (parsed) {
       throw new BuilderException("Each XMLConfigBuilder can only be used once.");
     }
@@ -103,26 +113,46 @@ public class XMLConfigBuilder extends BaseBuilder {
   private void parseConfiguration(XNode root) {
     try {
       // issue #117 read properties first
+      //解析<properties>节点
       propertiesElement(root.evalNode("properties"));
+      //解析<setting>节点
       Properties settings = settingsAsProperties(root.evalNode("settings"));
+      //设置vfsImpl字段
       loadCustomVfs(settings);
       loadCustomLogImpl(settings);
+      //解析<typeAliases>节点
       typeAliasesElement(root.evalNode("typeAliases"));
+      //解析<plugins>节点
       pluginElement(root.evalNode("plugins"));
+      //解析<objectFactory>节点
       objectFactoryElement(root.evalNode("objectFactory"));
+      //解析<objectWrapperFactory>节点
       objectWrapperFactoryElement(root.evalNode("objectWrapperFactory"));
+      //解析<reflectorFactory>节点
       reflectorFactoryElement(root.evalNode("reflectorFactory"));
+      //将setting值设置到Configuration中
       settingsElement(settings);
       // read it after objectFactory and objectWrapperFactory issue #631
+      //解析<environment>节点
       environmentsElement(root.evalNode("environments"));
+      //解析<databaseIdProvider>节点
       databaseIdProviderElement(root.evalNode("databaseIdProvider"));
+      //解析<typeHandlers>节点
       typeHandlerElement(root.evalNode("typeHandlers"));
+      //解析<mappers>节点
       mapperElement(root.evalNode("mappers"));
     } catch (Exception e) {
       throw new BuilderException("Error parsing SQL Mapper Configuration. Cause: " + e, e);
     }
   }
 
+  /**
+   * 解析<setting/>节点,<settings/>节点下配置的是MyBatis全局性的配置
+   * 在MyBatis初始化时,这些全局配置信息都会被记录到Configuration对象的对应属性中.
+   * settingsAsProperties()方法的解析方式与propertiesElement()方法类似,但是多了使用MetaClass检测key指定的属性在Configuration类中是否有对应setter方法.
+   * @param context
+   * @return
+   */
   private Properties settingsAsProperties(XNode context) {
     if (context == null) {
       return new Properties();
@@ -145,7 +175,7 @@ public class XMLConfigBuilder extends BaseBuilder {
       for (String clazz : clazzes) {
         if (!clazz.isEmpty()) {
           @SuppressWarnings("unchecked")
-          Class<? extends VFS> vfsImpl = (Class<? extends VFS>)Resources.classForName(clazz);
+          Class<? extends VFS> vfsImpl = (Class<? extends VFS>) Resources.classForName(clazz);
           configuration.setVfsImpl(vfsImpl);
         }
       }
@@ -284,8 +314,8 @@ public class XMLConfigBuilder extends BaseBuilder {
           DataSourceFactory dsFactory = dataSourceElement(child.evalNode("dataSource"));
           DataSource dataSource = dsFactory.getDataSource();
           Environment.Builder environmentBuilder = new Environment.Builder(id)
-              .transactionFactory(txFactory)
-              .dataSource(dataSource);
+            .transactionFactory(txFactory)
+            .dataSource(dataSource);
           configuration.setEnvironment(environmentBuilder.build());
           break;
         }
@@ -373,13 +403,13 @@ public class XMLConfigBuilder extends BaseBuilder {
           String mapperClass = child.getStringAttribute("class");
           if (resource != null && url == null && mapperClass == null) {
             ErrorContext.instance().resource(resource);
-            try(InputStream inputStream = Resources.getResourceAsStream(resource)) {
+            try (InputStream inputStream = Resources.getResourceAsStream(resource)) {
               XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, resource, configuration.getSqlFragments());
               mapperParser.parse();
             }
           } else if (resource == null && url != null && mapperClass == null) {
             ErrorContext.instance().resource(url);
-            try(InputStream inputStream = Resources.getUrlAsStream(url)){
+            try (InputStream inputStream = Resources.getUrlAsStream(url)) {
               XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, url, configuration.getSqlFragments());
               mapperParser.parse();
             }

@@ -45,12 +45,18 @@ public class PooledDataSource implements DataSource {
   private final UnpooledDataSource dataSource;
 
   // OPTIONAL CONFIGURATION FIELDS
+  //最大活跃连接数
   protected int poolMaximumActiveConnections = 10;
+  //最大空闲连接数
   protected int poolMaximumIdleConnections = 5;
+  //最大checkout时长
   protected int poolMaximumCheckoutTime = 20000;
+  //在无法获取连接时，线程需要等待的时间
   protected int poolTimeToWait = 20000;
   protected int poolMaximumLocalBadConnectionTolerance = 3;
+  //在检测一个数据库连接是否可用时，会给数据库发送一个测试SQL语句
   protected String poolPingQuery = "NO PING QUERY SET";
+  //是否允许发送测试SQL语句
   protected boolean poolPingEnabled;
   protected int poolPingConnectionsNotUsedFor;
 

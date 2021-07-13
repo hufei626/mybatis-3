@@ -51,24 +51,42 @@ import org.apache.ibatis.util.MapUtil;
 public class Reflector {
 
   private final Class<?> type;
+  //可读属性的名称集合，可读属性就是存在相应getter方法的属性，初始值为空数组
   private final String[] readablePropertyNames;
+  //可写属性的名称集合，可写属性就是存在相应setter方法的属性，初始值为空数组
   private final String[] writablePropertyNames;
+  //记录了属性相应的setter方法，key是属性名称，value是Invoker对象，它是对setter方法对应Method对象的封装
   private final Map<String, Invoker> setMethods = new HashMap<>();
+  //属性相应的getter方法集合，key是属性名称，value也是Invoker对象
   private final Map<String, Invoker> getMethods = new HashMap<>();
+  //记录了属性相应的setter方法的参数值类型，key是属性名称，value是setter方法的参数类型
   private final Map<String, Class<?>> setTypes = new HashMap<>();
+  //记录了属性相应的getter方法的返回值类型，key是属性名称，value是getter方法的返回值类型
   private final Map<String, Class<?>> getTypes = new HashMap<>();
+  //记录了默认构造方法
   private Constructor<?> defaultConstructor;
-
+  //记录了所有属性名称的集合
   private Map<String, String> caseInsensitivePropertyMap = new HashMap<>();
 
+  /**
+   * 解析指定的Class对象，并填充上述集合
+   *
+   * @param clazz
+   */
   public Reflector(Class<?> clazz) {
     type = clazz;
+    //查找clazz的默认构造方法，具体实现是通过反射遍历所有构造方法
     addDefaultConstructor(clazz);
+    //处理clazz中的getter方法，填充getMethods集合和getTypes集合
     addGetMethods(clazz);
+    //处理clazz中的setter方法，填充setMethods集合和setTypes集合
     addSetMethods(clazz);
+    //处理没有getter/setter方法的字段
     addFields(clazz);
+    //根据getMethods/setMethods集合，初始化可读/写属性的名称集合
     readablePropertyNames = getMethods.keySet().toArray(new String[0]);
     writablePropertyNames = setMethods.keySet().toArray(new String[0]);
+    //初始化caseInsensitivePropertyMap集合，其中记录了所有大写格式的属性名称
     for (String propName : readablePropertyNames) {
       caseInsensitivePropertyMap.put(propName.toUpperCase(Locale.ENGLISH), propName);
     }
@@ -91,6 +109,11 @@ public class Reflector {
     resolveGetterConflicts(conflictingGetters);
   }
 
+  /**
+   * 处理子类覆写父类的方法
+   *
+   * @param conflictingGetters
+   */
   private void resolveGetterConflicts(Map<String, List<Method>> conflictingGetters) {
     for (Entry<String, List<Method>> entry : conflictingGetters.entrySet()) {
       Method winner = null;
@@ -125,10 +148,10 @@ public class Reflector {
 
   private void addGetMethod(String name, Method method, boolean isAmbiguous) {
     MethodInvoker invoker = isAmbiguous
-        ? new AmbiguousMethodInvoker(method, MessageFormat.format(
-            "Illegal overloaded getter method with ambiguous type for property ''{0}'' in class ''{1}''. This breaks the JavaBeans specification and can cause unpredictable results.",
-            name, method.getDeclaringClass().getName()))
-        : new MethodInvoker(method);
+      ? new AmbiguousMethodInvoker(method, MessageFormat.format(
+      "Illegal overloaded getter method with ambiguous type for property ''{0}'' in class ''{1}''. This breaks the JavaBeans specification and can cause unpredictable results.",
+      name, method.getDeclaringClass().getName()))
+      : new MethodInvoker(method);
     getMethods.put(name, invoker);
     Type returnType = TypeParameterResolver.resolveReturnType(method, type);
     getTypes.put(name, typeToClass(returnType));
@@ -186,9 +209,9 @@ public class Reflector {
       return setter1;
     }
     MethodInvoker invoker = new AmbiguousMethodInvoker(setter1,
-        MessageFormat.format(
-            "Ambiguous setters defined for property ''{0}'' in class ''{1}'' with types ''{2}'' and ''{3}''.",
-            property, setter2.getDeclaringClass().getName(), paramType1.getName(), paramType2.getName()));
+      MessageFormat.format(
+        "Ambiguous setters defined for property ''{0}'' in class ''{1}'' with types ''{2}'' and ''{3}''.",
+        property, setter2.getDeclaringClass().getName(), paramType1.getName(), paramType2.getName()));
     setMethods.put(property, invoker);
     Type[] paramTypes = TypeParameterResolver.resolveParamTypes(setter1, type);
     setTypes.put(property, typeToClass(paramTypes[0]));
@@ -297,6 +320,9 @@ public class Reflector {
   private void addUniqueMethods(Map<String, Method> uniqueMethods, Method[] methods) {
     for (Method currentMethod : methods) {
       if (!currentMethod.isBridge()) {
+        //通过Reflector.getSignature()方法得到的方法签名是：返回值类型#方法名称:参数类型列表。
+        //例如，Reflector.getSignature(Method)方法的唯一签名是:java.lang.String#getSignature:java.lang.reflect.Method
+        //通过Reflector.getSignature()方法得到的方法签名是全局唯一的，可以作为该方法的唯一标识
         String signature = getSignature(currentMethod);
         // check to see if the method is already known
         // if it is known, then an extended class must have

@@ -37,17 +37,21 @@ import org.apache.ibatis.io.Resources;
  * @author Eduardo Macarron
  */
 public class UnpooledDataSource implements DataSource {
-
+  //加载Driver类的类加载器
   private ClassLoader driverClassLoader;
+  //数据库连接驱动的相关配置
   private Properties driverProperties;
+  //缓存所有已注册的数据库连接驱动
   private static Map<String, Driver> registeredDrivers = new ConcurrentHashMap<>();
-
+  //数据库连接的驱动名称
   private String driver;
+  //数据库URL
   private String url;
   private String username;
   private String password;
-
+  //是否自动提交
   private Boolean autoCommit;
+  //事务隔离级别
   private Integer defaultTransactionIsolationLevel;
   private Integer defaultNetworkTimeout;
 
@@ -197,8 +201,7 @@ public class UnpooledDataSource implements DataSource {
   /**
    * Sets the default network timeout value to wait for the database operation to complete. See {@link Connection#setNetworkTimeout(java.util.concurrent.Executor, int)}
    *
-   * @param defaultNetworkTimeout
-   *          The time in milliseconds to wait for the database operation to complete.
+   * @param defaultNetworkTimeout The time in milliseconds to wait for the database operation to complete.
    * @since 3.5.2
    */
   public void setDefaultNetworkTimeout(Integer defaultNetworkTimeout) {
